@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Hash & Hash to Text Converter</title>
+</head>
+<body>
+    <h2>Text to Hash & Hash to Text Converter</h2>
+
+    <!-- Text to Hash Section -->
+    <div>
+        <h3>Text to Hash</h3>
+        <input type="text" id="textInput" placeholder="Enter text to hash">
+        <button onclick="convertTextToHash()">Convert to Hash</button>
+        <p id="hashOutput"></p>
+    </div>
+
+    <!-- Hash to Text Section -->
+    <div>
+        <h3>Hash to Text</h3>
+        <input type="text" id="hashInput" placeholder="Enter hash to get text">
+        <button onclick="convertHashToText()">Convert to Text</button>
+        <p id="textOutput"></p>
+    </div>
+    <script>
+// Hashing জন্য SHA-256 ব্যবহৃত হবে
+async function hashText(text) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(text);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+}
+
+// Text to Hash convert করে save.txt তে সংরক্ষণ
+async function convertTextToHash() {
+    const text = document.getElementById("textInput").value;
+    const hash = await hashText(text);
+
+    // hash এবং text সেভ করা হচ্ছে save.txt ফাইলে
+    saveData(text, hash);
+
+    document.getElementById("hashOutput").textContent = "Hash: " + hash;
+}
+
+// Hash থেকে Text প্রদর্শন
+async function convertHashToText() {
+    const hash = document.getElementById("hashInput").value;
+    const text = await getTextFromHash(hash);
+
+    if (text) {
+        document.getElementById("textOutput").textContent = "Original Text: " + text;
+    } else {
+        document.getElementById("textOutput").textContent = "Text not found for this hash.";
+    }
+}
+
+// save.txt ফাইলে hash এবং text সংরক্ষণ করা
+function saveData(text, hash) {
+    const data = `${hash}:${text}\n`;
+    const blob = new Blob([data], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'save.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// hash থেকে text বের করা
+async function getTextFromHash(hash) {
+    const response = await fetch('save.txt');
+    const data = await response.text();
+    const lines = data.split('\n');
+    
+    for (let line of lines) {
+        const [savedHash, savedText] = line.split(':');
+        if (savedHash === hash) {
+            return savedText;
+        }
+    }
+    return null;
+}
+    </script>
+</body>
+</html>
